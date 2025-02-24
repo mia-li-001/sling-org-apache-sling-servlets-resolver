@@ -89,235 +89,69 @@ public class PathBasedServletAcceptorTest {
             return this;
         }
 
+        /**
+         * Consolidated method to handle assertion logic while allowing specific properties to be null.
+         */
+        private void assertAcceptInternal(boolean expected, String... mismtachStubbingArgs) {
+            // Stub the ServiceReference with our service properties
+            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
+            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
+            when(reference.getPropertyKeys()).thenReturn(keys);
+            for (String key : keys) {
+                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
+            }
+
+            // Explicitly set requested properties to null
+            for (String msArgsKey : mismtachStubbingArgs) {
+                when(reference.getProperty(msArgsKey)).thenReturn(null);
+            }
+
+            // Wire the Servlet to our ServiceReference
+            final ServletContext sc = mock(ServletContext.class);
+            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
+            final Servlet servlet = mock(Servlet.class);
+            when(servlet.getServletConfig()).thenReturn(ssc);
+
+            // Setup the request values
+            final RequestPathInfo rpi = mock(RequestPathInfo.class);
+            when(rpi.getExtension()).thenReturn(extension);
+            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
+
+            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
+            when(request.getRequestPathInfo()).thenReturn(rpi);
+            when(request.getMethod()).thenReturn(method);
+
+            // And call the acceptor
+            final boolean actual = acceptor.accept(request, servlet);
+            assertEquals(expected, actual);
+        }
+
         void assertAccept(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+            assertAcceptInternal(expected, new String[]{});
         }
 
-        void assertAccept2(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.methods")).thenReturn(null);
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithEmptyExtensionAndSelector(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.methods");
         }
 
-
-        void assertAccept3(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.extensions")).thenReturn(null);
-            when(reference.getProperty("sling.servlet.selectors")).thenReturn(null);
-            when(reference.getProperty("sling.servlet.methods")).thenReturn(null);
-
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithNoServiceProperty(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.extensions", "sling.servlet.selectors", "sling.servlet.methods");
         }
 
-        void assertAccept4(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.extensions")).thenReturn(null);
-            when(reference.getProperty("sling.servlet.methods")).thenReturn(null);
-
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithSelectorMatch(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.extensions", "sling.servlet.methods");
         }
 
-        void assertAccept5(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.extensions")).thenReturn(null);
-            when(reference.getProperty("sling.servlet.selectors")).thenReturn(null);
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithMethodMismatch(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.extensions", "sling.servlet.selectors");
         }
 
-        void assertAccept6(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.selectors")).thenReturn(null);
-            when(reference.getProperty("sling.servlet.methods")).thenReturn(null);
-
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithExtensionMatch(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.selectors", "sling.servlet.methods");
         }
 
-        void assertAccept7(boolean expected) {
-
-            // Stub the ServiceReference with our service properties
-            @SuppressWarnings("unchecked") final ServiceReference<Servlet> reference = mock(ServiceReference.class);
-            final String[] keys = Collections.list(serviceProperties.keys()).toArray(STRING_ARRAY);
-            when(reference.getPropertyKeys()).thenReturn(keys);
-            for (String key : keys) {
-                when(reference.getProperty(key)).thenReturn(serviceProperties.get(key));
-            }
-
-            when(reference.getProperty("sling.servlet.extensions")).thenReturn(null);
-
-            // Wire the Servlet to our ServiceReference
-            final ServletContext sc = mock(ServletContext.class);
-            final SlingServletConfig ssc = new SlingServletConfig(sc, reference, "42");
-            final Servlet servlet = mock(Servlet.class);
-            when(servlet.getServletConfig()).thenReturn(ssc);
-
-            // Setup the request values
-            final RequestPathInfo rpi = mock(RequestPathInfo.class);
-            when(rpi.getExtension()).thenReturn(extension);
-            when(rpi.getSelectors()).thenReturn(selectors.toArray(STRING_ARRAY));
-
-            final SlingHttpServletRequest request = mock(SlingHttpServletRequest.class);
-            when(request.getRequestPathInfo()).thenReturn(rpi);
-            when(request.getMethod()).thenReturn(method);
-
-            // And call the acceptor
-            final boolean actual = acceptor.accept(request, servlet);
-            assertEquals(expected, actual);
+        void assertAcceptWithExtensionUnset(boolean expected) {
+            assertAcceptInternal(expected, "sling.servlet.extensions");
         }
     }
 
@@ -350,14 +184,14 @@ public class PathBasedServletAcceptorTest {
                 // test various ways of setting multiple properties
                 .withServiceProperty(ServletResolverTestSupport.P_EXTENSIONS, (Object) new String[]{"one", "two"})
                 .withExtension("one")
-                .assertAccept6(true);
+                .assertAcceptWithExtensionMatch(true);
     }
 
     @Test
     public void extensionPropertyNotSet() {
         new TestCase()
                 .withExtension("somethingElse")
-                .assertAccept3(true);
+                .assertAcceptWithNoServiceProperty(true);
     }
 
     @Test
@@ -373,7 +207,7 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, "sel")
                 .withSelector("sel")
-                .assertAccept4(true);
+                .assertAcceptWithSelectorMatch(true);
     }
 
     @Test
@@ -381,7 +215,7 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, "one", "two", "three")
                 .withSelectors("three", "and", "somethingElse")
-                .assertAccept4(true);
+                .assertAcceptWithSelectorMatch(true);
     }
 
     @Test
@@ -389,7 +223,7 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, "one", "two", "three")
                 .withExtension("three")
-                .assertAccept7(false);
+                .assertAcceptWithExtensionUnset(false);
     }
 
     @Test
@@ -397,14 +231,14 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, "one", "two", "42")
                 .withSelectors("42")
-                .assertAccept4(true);
+                .assertAcceptWithSelectorMatch(true);
     }
 
     @Test
     public void selectorPropertyNotSet() {
         new TestCase()
                 .withSelector("somethingElse")
-                .assertAccept3(true);
+                .assertAcceptWithNoServiceProperty(true);
     }
 
     @Test
@@ -412,14 +246,14 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_METHODS, "meth")
                 .withMethod("somethingElse")
-                .assertAccept5(false);
+                .assertAcceptWithMethodMismatch(false);
     }
 
     @Test
     public void methodPropertyNotSet() {
         new TestCase()
                 .withMethod("somethingElse")
-                .assertAccept3(true);
+                .assertAcceptWithNoServiceProperty(true);
     }
 
     @Test
@@ -428,7 +262,7 @@ public class PathBasedServletAcceptorTest {
                 .withServiceProperty(ServletResolverTestSupport.P_STRICT_PATHS, "true")
                 .withServiceProperty(ServletResolverTestSupport.P_METHODS, "meth")
                 .withMethod("somethingElse")
-                .assertAccept5(false);
+                .assertAcceptWithMethodMismatch(false);
     }
 
     @Test
@@ -455,7 +289,7 @@ public class PathBasedServletAcceptorTest {
                 .withServiceProperty(ServletResolverTestSupport.P_STRICT_PATHS, true)
                 .withServiceProperty(ServletResolverTestSupport.P_EXTENSIONS, V_EMPTY)
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, V_EMPTY)
-                .assertAccept2(true);
+                .assertAcceptWithEmptyExtensionAndSelector(true);
     }
 
     @Test
@@ -485,7 +319,7 @@ public class PathBasedServletAcceptorTest {
                 .withServiceProperty(ServletResolverTestSupport.P_EXTENSIONS, V_EMPTY)
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, "someSel")
                 .withSelector("someSel")
-                .assertAccept2(true);
+                .assertAcceptWithEmptyExtensionAndSelector(true);
     }
 
     @Test
@@ -495,7 +329,7 @@ public class PathBasedServletAcceptorTest {
                 .withServiceProperty(ServletResolverTestSupport.P_EXTENSIONS, "someExt")
                 .withServiceProperty(ServletResolverTestSupport.P_SELECTORS, V_EMPTY)
                 .withExtension("someExt")
-                .assertAccept2(true);
+                .assertAcceptWithEmptyExtensionAndSelector(true);
     }
 
     @Test(expected = PathBasedServletAcceptor.InvalidPropertyException.class)
@@ -503,7 +337,7 @@ public class PathBasedServletAcceptorTest {
         new TestCase()
                 .withServiceProperty(ServletResolverTestSupport.P_STRICT_PATHS, true)
                 .withServiceProperty(ServletResolverTestSupport.P_METHODS, V_EMPTY)
-                .assertAccept5(true);
+                .assertAcceptWithMethodMismatch(true);
     }
 
     @Test
@@ -514,4 +348,3 @@ public class PathBasedServletAcceptorTest {
 
     }
 }
-
